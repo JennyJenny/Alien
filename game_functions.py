@@ -4,6 +4,7 @@ from bullet import Bullet
 from alien import Alien
 from time import sleep
 
+
 def fire_bullet(ai_settings, screen, ship, bullets, audio):
     """如果还没有达到限制，就发射一颗子弹"""
     # 创建一颗子弹，并将其加入到编组bullets中
@@ -12,6 +13,7 @@ def fire_bullet(ai_settings, screen, ship, bullets, audio):
         bullets.add(new_bullet)
         # 添加射击音效
         audio.add_shot_sound()
+
 
 def check_keydown_events(event, ai_settings, screen, stats, sb, ship, aliens, bullets, audio):
     """ 响应按键"""
@@ -63,7 +65,6 @@ def check_events(ai_settings, screen, stats, sb, play_button, ship, aliens, bull
             if play_button.rect.collidepoint(mouse_x, mouse_y) and not stats.game_active:
                 check_play_button(ai_settings, screen, stats, sb, play_button, ship, aliens, bullets, mouse_x, mouse_y)
             elif sb.pause_button_rect.collidepoint(mouse_x, mouse_y):
-                pygame.mouse.set_visible(True)
                 # 播放/暂停背景音乐
                 audio.unpause_pause_music()
 
@@ -93,7 +94,11 @@ def start_game(ai_settings, screen, stats, sb, ship, aliens, bullets):
 
 def update_screen(ai_settings, screen, stats, sb, ship, aliens, bullets, play_button):
     """更新屏幕上的图像，并切换到新屏幕"""
-    screen.fill(ai_settings.bg_color)
+    if not stats.game_active:
+        screen.blit(ai_settings.bg_image, (0, 0))
+
+    else:
+        screen.fill(ai_settings.bg_color)
 
     # 在飞船和外星人后面重绘所有子弹
     for bullet in bullets.sprites():
@@ -102,7 +107,6 @@ def update_screen(ai_settings, screen, stats, sb, ship, aliens, bullets, play_bu
     aliens.draw(screen)
     sb.show_score()
 
-    # 如果游戏处于非活动状态，就绘制Play按钮
     if not stats.game_active:
         play_button.draw_button()
 
@@ -183,15 +187,15 @@ def create_fleet(ai_settings, screen, ship, aliens):
             create_alien(ai_settings, screen, aliens, alien_number, row_number)
 
 
-def update_aliens(ai_settings, stats, screen, sb, ship, aliens, bullets):
+def update_aliens(ai_settings, stats, screen, sb, ship, aliens, bullets, audio):
     """检查是否有外星人位于屏幕边缘，并更新外星人群中所有外星人的位置"""
     check_fleet_edges(ai_settings, aliens)
     aliens.update()
     # 检测外星人和飞船之间的碰撞
     if pygame.sprite.spritecollideany(ship, aliens):
-        ship_hit(ai_settings, stats, screen, sb, ship, aliens, bullets)
+        ship_hit(ai_settings, stats, screen, sb, ship, aliens, bullets, audio)
     # 检查是否有外星人到达屏幕底端
-    check_aliens_bottom(ai_settings, stats, screen, sb, ship, aliens, bullets)
+    check_aliens_bottom(ai_settings, stats, screen, sb, ship, aliens, bullets, audio)
 
 
 def check_fleet_edges(ai_settings, aliens):
@@ -209,10 +213,9 @@ def change_fleet_direction(ai_settings, aliens):
     ai_settings.fleet_direction *= -1
 
 
-def ship_hit(ai_settings, stats, screen, sb, ship, aliens, bullets):
-    collision_audio = pygame.mixer.Sound("audio/crashed.wav")
-    collision_audio.set_volume(0.5)
-    collision_audio.play()
+def ship_hit(ai_settings, stats, screen, sb, ship, aliens, bullets, audio):
+    # 添加飞船撞击声
+    audio.add_crash_sound()
     """响应被外星人撞到的飞船"""
     if stats.ships_left > 0:
         # 将ships_left 减1
@@ -234,13 +237,13 @@ def ship_hit(ai_settings, stats, screen, sb, ship, aliens, bullets):
         pygame.mouse.set_visible(True)
 
 
-def check_aliens_bottom(ai_settings, stats, screen, sb, ship, aliens, bullets):
+def check_aliens_bottom(ai_settings, stats, screen, sb, ship, aliens, bullets, audio):
     """检查是否有外星人到达了屏幕底端"""
     screen_rect = screen.get_rect()
     for alien in aliens.sprites():
         if alien.rect.bottom >= screen_rect.bottom:
             # 像飞船被撞到一样进行处理
-            ship_hit(ai_settings, stats, screen, sb, ship, aliens, bullets)
+            ship_hit(ai_settings, stats, screen, sb, ship, aliens, bullets, audio)
             break
 
 
